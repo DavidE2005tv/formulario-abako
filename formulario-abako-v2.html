@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrega de Documentos · Abako</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --abako-blue: #1a5276;
+    --abako-blue-dark: #154360;
+    --abako-green: #1e8449;
+    --abako-red: #c0392b;
+    --ink: #2c3e50;
+    --muted: #7f8c8d;
+    --line: #e0e6ea;
+    --bg: #f4f7f9;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.5;
+    padding: 24px 16px 60px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .header {
+    background: var(--abako-blue);
+    color: #fff;
+    padding: 32px 28px;
+    border-radius: 10px 10px 0 0;
+    text-align: center;
+  }
+  .header .kicker {
+    font-size: 12px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    opacity: 0.8;
+    margin-bottom: 8px;
+  }
+  .header h1 { font-size: 23px; font-weight: bold; }
+  .header .period {
+    margin-top: 10px;
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    padding: 28px;
+  }
+  .intro { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+  label.field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  input[type="email"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 15px;
+    font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  input[type="email"]:focus { outline: none; border-color: var(--abako-blue); }
+  .email-block { margin-bottom: 28px; }
+  .divider { height: 1px; background: var(--line); margin: 4px 0 24px; }
+  .section-title {
+    font-size: 15px;
+    font-weight: bold;
+    color: var(--abako-blue);
+    margin-bottom: 4px;
+  }
+  .section-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .category { margin-bottom: 18px; }
+  .dropzone {
+    border: 1.5px dashed var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .dropzone:hover { border-color: var(--abako-blue); background: #f8fbfd; }
+  .dropzone.has-files { border-style: solid; border-color: var(--abako-green); background: #f1faf4; }
+  .dropzone .icon {
+    width: 38px; height: 38px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: #eef3f6;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: bold; color: #5a6b78;
+  }
+  .dropzone.has-files .icon { background: #d4efdf; color: var(--abako-green); }
+  .dropzone .text .cat-name { font-size: 14px; font-weight: bold; }
+  .dropzone .text .cat-hint { font-size: 12px; color: var(--muted); }
+  .file-list { list-style: none; margin: 10px 0 0; padding: 0; }
+  .file-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    padding: 7px 12px;
+    background: #f4f7f9;
+    border-radius: 6px;
+    margin-top: 6px;
+  }
+  .file-list li .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 10px; }
+  .file-list li .remove {
+    color: var(--abako-red);
+    cursor: pointer;
+    font-weight: bold;
+    flex-shrink: 0;
+    border: none;
+    background: none;
+    font-size: 16px;
+    line-height: 1;
+  }
+  input[type="file"] { display: none; }
+  .submit-btn {
+    width: 100%;
+    margin-top: 28px;
+    padding: 15px;
+    background: var(--abako-blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .submit-btn:hover { background: var(--abako-blue-dark); }
+  .submit-btn:disabled { background: #95a5a6; cursor: not-allowed; }
+  .status { margin-top: 18px; padding: 14px 16px; border-radius: 8px; font-size: 14px; display: none; }
+  .status.show { display: block; }
+  .status.info { background: #eaf2f8; color: var(--abako-blue); }
+  .status.success { background: #eafaf1; color: var(--abako-green); border: 1px solid #abebc6; }
+  .status.error { background: #fdf3f2; color: var(--abako-red); border: 1px solid #f5c6c2; }
+  .progress-bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; margin-top: 10px; display: none; }
+  .progress-bar.show { display: block; }
+  .progress-fill { height: 100%; background: var(--abako-blue); width: 0%; transition: width 0.3s; }
+  .footer { text-align: center; font-size: 12px; color: #aaa; margin-top: 20px; }
+  .success-screen { display: none; text-align: center; padding: 20px 0; }
+  .success-screen.show { display: block; }
+  .success-screen .check {
+    width: 64px; height: 64px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: #eafaf1;
+    color: var(--abako-green);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+  }
+  .success-screen h2 { font-size: 20px; margin-bottom: 10px; }
+  .success-screen p { font-size: 14px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="kicker">Servicios Contables</div>
+    <h1>Entrega de Documentos</h1>
+    <span class="period" id="periodLabel">cargando...</span>
+  </div>
+  <div class="card">
+    <div id="formView">
+      <p class="intro">
+        Suba los documentos contables del periodo. Puede adjuntar varios archivos
+        por categoria (PDF, imagenes o Excel). No es necesario completar todas las
+        categorias en un solo envio.
+      </p>
+      <div class="email-block">
+        <label class="field-label" for="email">Correo electronico registrado</label>
+        <input type="email" id="email" placeholder="correo@empresa.com" autocomplete="email">
+      </div>
+      <div class="divider"></div>
+      <div class="section-title">Documentos del periodo</div>
+      <div class="section-sub">Toque cada categoria para adjuntar archivos.</div>
+      <div id="categories"></div>
+      <button class="submit-btn" id="submitBtn">Enviar documentos</button>
+      <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="success-screen" id="successView">
+      <div class="check">OK</div>
+      <h2>Documentos recibidos</h2>
+      <p id="successMsg">Su envio fue registrado correctamente. Recibira una confirmacion por correo.</p>
+    </div>
+  </div>
+  <div class="footer">Abako - Servicios Contables</div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIGURACION - completar antes de publicar
+  // ============================================================
+  var SUPABASE_URL = 'https://abako-manval-supabase.ysweo5.easypanel.host';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE';
+  var WEBHOOK_URL = 'https://abako-manval-n8n.ysweo5.easypanel.host/webhook/entrega-documentos';
+  var BUCKET = 'client-documents';
+  // ============================================================
+
+  var CATEGORIES = [
+    { key: 'facturacion', name: 'Facturacion electronica y POS' },
+    { key: 'compras',     name: 'Compras, gastos y cuentas por pagar' },
+    { key: 'bancos',      name: 'Bancos y tesoreria' },
+    { key: 'nomina',      name: 'Nomina y seguridad social' },
+    { key: 'impuestos',   name: 'Impuestos y aspectos legales' }
+  ];
+
+  var selected = {};
+  for (var i = 0; i < CATEGORIES.length; i++) { selected[CATEGORIES[i].key] = []; }
+
+  // Periodo (independiente de Supabase)
+  var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var now = new Date();
+  var periodo = meses[now.getMonth()] + ' ' + now.getFullYear();
+  document.getElementById('periodLabel').textContent = periodo;
+
+  // Render de categorias (independiente de Supabase)
+  var container = document.getElementById('categories');
+  for (var c = 0; c < CATEGORIES.length; c++) {
+    (function(cat){
+      var wrapper = document.createElement('div');
+      wrapper.className = 'category';
+      wrapper.innerHTML =
+        '<div class="dropzone" id="dz-' + cat.key + '">' +
+          '<div class="icon" id="ic-' + cat.key + '">DOC</div>' +
+          '<div class="text">' +
+            '<div class="cat-name">' + cat.name + '</div>' +
+            '<div class="cat-hint" id="hint-' + cat.key + '">Toque para adjuntar archivos</div>' +
+          '</div>' +
+        '</div>' +
+        '<input type="file" id="file-' + cat.key + '" multiple>' +
+        '<ul class="file-list" id="list-' + cat.key + '"></ul>';
+      container.appendChild(wrapper);
+
+      var dz = document.getElementById('dz-' + cat.key);
+      var input = document.getElementById('file-' + cat.key);
+      dz.addEventListener('click', function(){ input.click(); });
+      input.addEventListener('change', function(){
+        for (var k = 0; k < input.files.length; k++) { selected[cat.key].push(input.files[k]); }
+        input.value = '';
+        renderList(cat.key);
+      });
+    })(CATEGORIES[c]);
+  }
+
+  function renderList(key) {
+    var list = document.getElementById('list-' + key);
+    var dz = document.getElementById('dz-' + key);
+    var hint = document.getElementById('hint-' + key);
+    var icon = document.getElementById('ic-' + key);
+    list.innerHTML = '';
+    var files = selected[key];
+    if (files.length > 0) {
+      dz.classList.add('has-files');
+      icon.textContent = 'OK';
+      hint.textContent = files.length + (files.length === 1 ? ' archivo adjunto' : ' archivos adjuntos');
+    } else {
+      dz.classList.remove('has-files');
+      icon.textContent = 'DOC';
+      hint.textContent = 'Toque para adjuntar archivos';
+    }
+    for (var n = 0; n < files.length; n++) {
+      (function(f, idx){
+        var li = document.createElement('li');
+        li.innerHTML = '<span class="name">' + f.name + '</span>';
+        var btn = document.createElement('button');
+        btn.className = 'remove';
+        btn.textContent = 'x';
+        btn.onclick = function(){ selected[key].splice(idx, 1); renderList(key); };
+        li.appendChild(btn);
+        list.appendChild(li);
+      })(files[n], n);
+    }
+  }
+
+  function sanitize(str) { return str.replace(/[^a-zA-Z0-9._-]/g, '_'); }
+
+  function showStatus(type, msg) {
+    var s = document.getElementById('status');
+    s.className = 'status show ' + type;
+    s.textContent = msg;
+  }
+
+  // Supabase: inicializacion segura, solo al enviar
+  var supabaseClient = null;
+  function getSupabase() {
+    if (!supabaseClient) {
+      if (!window.supabase || !window.supabase.createClient) {
+        throw new Error('No se pudo cargar la libreria de Supabase. Revisa tu conexion a internet y recarga la pagina.');
+      }
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }
+    return supabaseClient;
+  }
+
+  var submitBtn = document.getElementById('submitBtn');
+  submitBtn.addEventListener('click', async function(){
+    var email = document.getElementById('email').value.trim().toLowerCase();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showStatus('error', 'Por favor ingrese un correo electronico valido.');
+      return;
+    }
+    var totalFiles = 0;
+    for (var t = 0; t < CATEGORIES.length; t++) { totalFiles += selected[CATEGORIES[t].key].length; }
+    if (totalFiles === 0) {
+      showStatus('error', 'Adjunte al menos un documento antes de enviar.');
+      return;
+    }
+
+    var sb;
+    try { sb = getSupabase(); }
+    catch (e) { showStatus('error', e.message); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Subiendo...';
+    document.getElementById('progressBar').classList.add('show');
+    showStatus('info', 'Subiendo archivos, por favor espere...');
+
+    var emailPath = sanitize(email);
+    var periodPath = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    var uploaded = {};
+    for (var u = 0; u < CATEGORIES.length; u++) { uploaded[CATEGORIES[u].key] = []; }
+
+    var done = 0;
+    try {
+      for (var ci = 0; ci < CATEGORIES.length; ci++) {
+        var cat = CATEGORIES[ci];
+        var catFiles = selected[cat.key];
+        for (var fi = 0; fi < catFiles.length; fi++) {
+          var file = catFiles[fi];
+          var path = emailPath + '/' + periodPath + '/' + cat.key + '/' + Date.now() + '_' + sanitize(file.name);
+          var res = await sb.storage.from(BUCKET).upload(path, file);
+          if (res.error) { throw new Error('Error al subir ' + file.name + ': ' + res.error.message); }
+          uploaded[cat.key].push(path);
+          done++;
+          document.getElementById('progressFill').style.width = Math.round((done / totalFiles) * 100) + '%';
+        }
+      }
+
+      showStatus('info', 'Registrando su envio...');
+      var resp = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, files: uploaded })
+      });
+      if (!resp.ok) { throw new Error('El servidor no acepto el envio. Intente de nuevo.'); }
+
+      document.getElementById('formView').style.display = 'none';
+      document.getElementById('successView').classList.add('show');
+    } catch (err) {
+      showStatus('error', err.message || 'Ocurrio un error. Intente nuevamente.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enviar documentos';
+      document.getElementById('progressBar').classList.remove('show');
+    }
+  });
+</script>
+</body>
+</html>
